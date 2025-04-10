@@ -34,3 +34,7 @@ build/
 
 /src/main/resources/application.properties
 /src/main/resources/application-test.properties
+
+# 機密情報を含むファイル
+.env
+*.env
