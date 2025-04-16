@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,16 +15,22 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import com.example.samuraitravel.entity.Favorite;
 import com.example.samuraitravel.entity.House;
+import com.example.samuraitravel.entity.User;
 import com.example.samuraitravel.form.ReservationInputForm;
+import com.example.samuraitravel.security.UserDetailsImpl;
+import com.example.samuraitravel.service.FavoriteService;
 import com.example.samuraitravel.service.HouseService;
 
 @Controller
 @RequestMapping("/houses")
 public class HouseController {
     private final HouseService houseService;
+    private final FavoriteService favoriteService;
 
-    public HouseController(HouseService houseService) {
+    public HouseController(HouseService houseService, FavoriteService favoriteService) {
+        this.favoriteService = favoriteService;
         this.houseService = houseService;
     }
 
@@ -73,7 +80,11 @@ public class HouseController {
     }
 
     @GetMapping("/{id}")
-    public String show(@PathVariable(name = "id") Integer id, RedirectAttributes redirectAttributes, Model model) {
+    public String show(@PathVariable(name = "id") Integer id, 
+                        @AuthenticationPrincipal UserDetailsImpl userDetailsImpl, 
+                        RedirectAttributes redirectAttributes,
+                        Model model) 
+        {
         Optional<House> optionalHouse  = houseService.findHouseById(id);
 
         if (optionalHouse.isEmpty()) {
@@ -83,8 +94,22 @@ public class HouseController {
         }
 
         House house = optionalHouse.get();
+        Favorite favorite = null;
+        boolean isFavorite = false;
+        if (userDetailsImpl != null) {
+            // ユーザーがログインしている場合
+            // お気に入りの情報を取得
+            User user = userDetailsImpl.getUser();
+            isFavorite = favoriteService.isFavorite(house, user);
+            if (isFavorite) {
+                favorite = favoriteService.findFavoriteByHouseAndUser(house, user);
+            }
+        }
+
         model.addAttribute("house", house);
         model.addAttribute("reservationInputForm", new ReservationInputForm());
+        model.addAttribute("isFavorite", isFavorite);
+        model.addAttribute("favorite", favorite);
 
         return "houses/show";
     }
