@@ -69,6 +69,17 @@ CREATE TABLE IF NOT EXISTS reviews (
     FOREIGN KEY (user_id) REFERENCES users (id)
 );
 
+CREATE TABLE IF NOT EXISTS favorites (
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    house_id INT NOT NULL,ULL,
+    user_id INT NOT NULL,ULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE (house_id, user_id),
+    FOREIGN KEY (house_id) REFERENCES houses (id),
+    FOREIGN KEY (user_id) REFERENCES users (id)
+);
+
 -- Add trigger function to handle automatic updates of updated_at columns
 CREATE OR REPLACE FUNCTION IF NOT EXISTS update_modified_column()
 RETURNS TRIGGER AS $$
@@ -102,6 +113,12 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_reservations_modtime') THEN
         CREATE TRIGGER update_reservations_modtime
         BEFORE UPDATE ON reservations
+        FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_favorites_modtime') THEN
+        CREATE TRIGGER update_favorites_modtime
+        BEFORE UPDATE ON favorites
         FOR EACH ROW EXECUTE FUNCTION update_modified_column();
     END IF;
 END $$;
